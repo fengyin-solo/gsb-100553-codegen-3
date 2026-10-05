@@ -62,6 +62,7 @@ npm run dev
 | 缺陷管理 | `defect` | 设备缺陷 | 缺陷编号、发现日期、缺陷设备 |
 | 检修计划 | `maintenance` | 检修计划 | 计划编号、检修设备、检修类别 |
 | 备品备件 | `spare_parts` | 备件物料 | 备件编号、备件名称、规格型号 |
+| 到货验收 | `arrivals` | 到货批次 | 到货批次、开箱记录、验收结论、入库日期、质保期 |
 | 告警事件 | `alarm` | 告警事件 | 告警编号、告警来源、告警类型 |
 | 调度指令 | `dispatch` | 调度指令单 | 指令编号、下发单位、指令类型 |
 | 安全措施 | `safety` | 安全措施票 | 措施编号、措施类型、涉及设备 |
@@ -74,3 +75,5 @@ npm run dev
   `backend/app/routers/<模块>.py`，业务规则在 `backend/app/services/<模块>.py`。
 - 列表接口统一返回 `{ items, total, page, size }`，动作接口统一返回 `{ ok, message }`。
 - 状态流转只允许在 `app/services` 里改，路由层不做业务判断。
+- 到货验收台账持久化在 `backend/data/acceptance.json`，可用
+  `ACCEPTANCE_DATA_FILE` 覆盖文件位置；首次启动会按存量送货单回填。

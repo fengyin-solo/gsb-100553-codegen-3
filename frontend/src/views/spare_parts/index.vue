@@ -31,12 +31,19 @@
       <thead>
         <tr>
           <th v-for="column in columns" :key="column">{{ column }}</th>
+          <th>待办事项</th>
           <th>可执行动作</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="row in rows" :key="String(row.id)">
           <td v-for="column in columns" :key="column">{{ row[column] ?? '—' }}</td>
+          <td>
+            <ul v-if="todoList(row).length" class="todo-list">
+              <li v-for="item in todoList(row)" :key="item">{{ item }}</li>
+            </ul>
+            <span v-else>—</span>
+          </td>
           <td class="row-actions">
             <button
               v-for="action in actions"
@@ -50,7 +57,7 @@
           </td>
         </tr>
         <tr v-if="!rows.length">
-          <td :colspan="columns.length + 1" class="empty-state">暂无备品备件数据，可先登记备件物料</td>
+          <td :colspan="columns.length + 2" class="empty-state">暂无备品备件数据，可先登记备件物料</td>
         </tr>
       </tbody>
     </table>
@@ -67,7 +74,7 @@ import { onMounted, ref } from 'vue'
 
 import { request } from '@/api/client'
 
-type Row = Record<string, string | number | null>
+type Row = Record<string, unknown>
 
 const ENDPOINT = '/api/spare_parts'
 const columns = ["备件编号", "备件名称", "规格型号", "适用设备", "安全存量", "当前存量", "存放位置", "备件状态"]
@@ -84,6 +91,11 @@ const filterFields = columns.slice(0, 3)
 function resetFilters() {
   filters.value = {}
   void reload()
+}
+
+function todoList(row: Row): string[] {
+  const value = row['待办事项']
+  return Array.isArray(value) ? value.map(String) : []
 }
 
 function exportRows() {
@@ -128,3 +140,8 @@ async function reload() {
 
 onMounted(reload)
 </script>
+
+<style scoped>
+.todo-list { margin: 0; padding-left: 16px; }
+.todo-list li { color: #b54708; }
+</style>
