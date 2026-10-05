@@ -6,14 +6,27 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 
 from app.schemas import ActionResult, EntryPayload, PageResult
+from app.services.arrival import ArrivalService
 from app.services.spare_parts import SparePartsService
 
 router = APIRouter(prefix="/api/spare_parts", tags=["备品备件"])
 
 service = SparePartsService()
+arrival_service = ArrivalService()
 
 LIST_FIELDS = ["备件编号", "备件名称", "规格型号", "适用设备", "安全存量", "当前存量", "存放位置", "备件状态"]
 STATUSES = ["存量充足", "低于安全量", "已用尽", "已废弃"]
+
+
+@router.get("/todos")
+def list_todos(
+    part_no: str | None = Query(default=None, description="按备件编号过滤待办"),
+    status: str | None = Query(default=None, description="待处理 / 已完成"),
+    pending_only: bool = Query(default=False, description="只看待处理"),
+) -> dict[str, Any]:
+    """验收结论同步过来的备件待办：随到货验收推进自动更新，不重复堆叠。"""
+    items = arrival_service.list_todos(part_no=part_no, status=status, pending_only=pending_only)
+    return {"module": "spare_part_todo", "total": len(items), "items": items}
 
 
 @router.get("", response_model=PageResult[dict])

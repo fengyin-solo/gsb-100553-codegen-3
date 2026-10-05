@@ -18,6 +18,37 @@
       </article>
     </div>
 
+    <section class="todo-panel">
+      <header class="todo-head">
+        <h3>验收联动待办</h3>
+        <div class="todo-actions">
+          <label class="todo-filter">
+            <input type="checkbox" :checked="todoPendingOnly" @change="toggleTodoFilter" />
+            只看待处理
+          </label>
+          <button class="btn" type="button" @click="reloadTodos">刷新待办</button>
+        </div>
+      </header>
+      <table class="data-table todo-table">
+        <thead>
+          <tr><th>备件</th><th>到货批号</th><th>待办事项</th><th>触发环节</th><th>到期日</th><th>状态</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="todo in todos" :key="String(todo.id)" :class="{ abnormal: todo.abnormal && todo.pending }">
+            <td>{{ todo['备件编号'] }} · {{ todo['备件名称'] }}</td>
+            <td>{{ todo['到货批号'] }}</td>
+            <td>{{ todo['事项'] }}</td>
+            <td>{{ todo['触发环节'] }}</td>
+            <td>{{ todo['到期日'] || '—' }}</td>
+            <td><span :class="['todo-state', todo.pending ? 'open' : 'done']">{{ todo['状态'] }}</span></td>
+          </tr>
+          <tr v-if="!todos.length">
+            <td colspan="6" class="empty-state">暂无验收联动待办</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
     <form class="filter-bar" @submit.prevent="reload">
       <label v-for="field in filterFields" :key="field" class="filter-item">
         <span>{{ field }}</span>
@@ -81,9 +112,31 @@ const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
 
+// 到货验收结论同步过来的待办：与验收台账同源，动作在到货验收页执行。
+type Todo = Record<string, string | number | boolean | null>
+const todos = ref<Todo[]>([])
+const todoPendingOnly = ref(false)
+
 function resetFilters() {
   filters.value = {}
   void reload()
+}
+
+async function reloadTodos() {
+  try {
+    const suffix = todoPendingOnly.value ? '?pending_only=true' : ''
+    const response = await request(`${ENDPOINT}/todos${suffix}`)
+    if (!response.ok) throw new Error('验收待办读取失败')
+    const payload = await response.json()
+    todos.value = payload.items ?? []
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '验收待办读取失败'
+  }
+}
+
+function toggleTodoFilter(event: Event) {
+  todoPendingOnly.value = (event.target as HTMLInputElement).checked
+  void reloadTodos()
 }
 
 function exportRows() {
@@ -126,5 +179,32 @@ async function reload() {
   }
 }
 
-onMounted(reload)
+onMounted(() => {
+  void reload()
+  void reloadTodos()
+})
 </script>
+
+<style scoped>
+.todo-panel {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.todo-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.todo-head h3 { margin: 0; font-size: 14px; }
+.todo-actions { display: flex; align-items: center; gap: 10px; }
+.todo-filter { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+.todo-table { margin-top: 4px; }
+.todo-table tr.abnormal td { background: #fef3f2; }
+.todo-state { padding: 1px 8px; border-radius: 10px; font-size: 12px; font-style: normal; }
+.todo-state.open { background: #fdf0d8; color: #b45309; }
+.todo-state.done { background: #dcf5e7; color: #087443; }
+</style>
